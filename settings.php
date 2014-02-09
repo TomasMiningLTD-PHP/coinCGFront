@@ -8,6 +8,34 @@ $servers = array(
 	// array("address", port),
 );
 
+/************************
+ * \\\\\\ WARNING //////
+ * ---------------------
+ * ENABLING BOTH API &
+ * VIEW PRICES MAY RESULT
+ * IN LONGER LOAD TIMES!
+ ***********************/
+
+// Set your API(s) here.
+// Format: array(TYPE , "api key"),
+// Example: array(BTCGUILD, "123abc456def789ghi"),
+// ****
+// Posible types:
+// BTCGUILD - for btcguild.com
+// FIFTYBTC - for 50btc.com
+// SLUSH - for mining.bitcoin.cz
+// LTC_HASHFASTER - for ltc.hashfaster.com
+// LTCRABBIT - for ltcrabbit.com
+// WEMINELTC - for wemineltc.com
+$apis = array(
+	// array(BTCGUILD, ""),
+	// array(FIFTYBTC, ""),
+	// array(SLUSH, ""),
+	// array(LTC_HASHFASTER, ""),
+	// array(LTCRABBIT, ""),
+	// array(WEMINELTC, ""),
+);
+
 // Put false to disable or true to enable removing of disabled devices
 $removeDisabled = true;
 // Enable gpu specific details

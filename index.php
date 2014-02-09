@@ -1,16 +1,16 @@
 <?php
-/**************
+/******************************************
 * Coded by ebildude123
-* (C) 2013
+* (C) 2014
 * ItsLIGHTNESS.com
-* No redistribution allowed
-* No rebranding
-**************/
+* Please follow GPL if you wish to modify
+******************************************/
 define("MH_PER_S", 55);
 define("KH_PER_S", 56);
 $displayFormat = MH_PER_S;
 include "header.php";
 require "class.cgminer.php";
+require "defines.php";
 require "settings.php";
 require "functions.php";
 
@@ -188,6 +188,145 @@ foreach ($servers as $sUrl) {
   </table>
 </section>
 
+<?php if (count($apis) > 0) { ?>
+<section id="tables" style="margin-top: 5px; padding-top: 5px;">
+  <div class="page-header">
+    <h3>API</h3>
+  </div>
+  
+  <table class="table table-bordered table-striped table-hover">
+    <thead>
+      <tr>
+		<th>Pool</th>
+        <th>Balance</th> <!-- Confirmed reward -->
+		<th>Hash Rate</th>
+        <th>Total Shares</th>
+        <th>Difficulty</th>
+      </tr>
+    </thead>
+    <tbody>
+<?php		
+		foreach ($apis as $api) {
+			echo "<tr>\n";
+			$apiType = $api[0];
+			$apiKey = $api[1];
+			
+			$getName = $getBalance = $getHashrate = $getShares = $getDiff = "";
+			
+			if ($apiType == BTCGUILD) {
+				$getName = "BTCGuild";
+				$getAPI = getPage($apiType . $apiKey);
+				$getBalance = "There's a 15 second wait period for this API.";
+				
+				$apiArr = @json_decode($getAPI, true);
+				if (isset($apiArr["user"])) {
+					$getBalance = $apiArr["user"]["unpaid_rewards"];
+					$getHashrate = 0;
+					$getShares = 0;
+					$getDiff = $apiArr["pool"]["difficulty"];
+					
+					foreach ($apiArr["workers"] as $worker) {
+						$getHashrate += $worker["hash_rate"];
+						$getShares += $worker["valid_shares"];
+					}
+					
+					$getHashrate .= " MH/s";
+				}
+				elseif (trim($getAPI) == "API key did not match any users.") {
+					$getBalance = "Invalid API key.";
+				}
+			}
+			elseif ($apiType == FIFTYBTC) {
+				$getName = "50BTC";
+				$getAPI = getPage($apiType . $apiKey);
+				
+				$apiArr = @json_decode($getAPI, true);
+				if (isset($apiArr["user"])) {
+					$getBalance = $apiArr["user"]["confirmed_rewards"];
+					$getHashrate = $apiArr["user"]["hash_rate"] . " MH/s";
+					$getShares = 0;
+					$getDiff = "n/a";
+					
+					foreach ($apiArr["workers"] as $worker) {
+						$getShares += $worker["total_shares"];
+					}
+				}
+				elseif (isset($apiArr["error"]) && $apiArr["error"] == "Token is invalid! Please renew token on your settings page.") {
+					$getBalance = "Invalid API key.";
+				}
+				else {
+					$getBalance = "Error loading the API.";
+				}
+			}
+			elseif ($apiType == SLUSH || $apiType == WEMINELTC) {
+				$rwdName = "";
+				($apiType == SLUSH) ? $getName = "Slush" : $getName = "WeMineLTC";
+				($apiType == SLUSH) ? $rwdName = "confirmed_reward" : $rwdName = "confirmed_rewards";
+				$getAPI = getPage($apiType . $apiKey);
+				
+				$apiArr = @json_decode($getAPI, true);
+				if (isset($apiArr["username"])) {					
+					$getBalance = $apiArr[$rwdName];
+					$getHashrate = 0;
+					$getShares = 0;
+					$getDiff = "n/a";
+					
+					foreach ($apiArr["workers"] as $worker) {
+						$getHashrate += $worker["hashrate"];
+						(isset($worker["shares"])) ? $getShares += $worker["shares"] : $getShares = "n/a";
+					}
+					
+					($apiType == SLUSH) ? $getHashrate .= " MH/s" : $getHashrate .= " KH/s";
+				}
+				elseif (trim($getAPI) == "Invalid token" || trim($getAPI) == "Invalid Key.") {
+					$getBalance = "Invalid API key.";
+				}
+				elseif (strpos($getAPI, "API Throttle In Effect!") !== false) {
+					$getBalance = "There's a 60 second wait period for this API.";
+				}
+				else {
+					$getBalance = "Error loading the API.";
+				}
+			}
+			elseif ($apiType == LTC_HASHFASTER || $apiType == LTCRABBIT) {
+				($apiType == LTC_HASHFASTER) ? $getName = "HashFaster" : $getName = "LTCRabbit";
+				$getAPI = getPage($apiType . $apiKey);
+				
+				$apiArr = @json_decode($getAPI, true);
+				if (isset($apiArr["getuserstatus"])) {
+					$getBalance = "n/a";
+					if (isset($apiArr["getuserstatus"]["balance"])) {
+						$getBalance = $apiArr["getuserstatus"]["balance"];
+					}
+					($apiType == LTC_HASHFASTER) ? $getHashrate = $apiArr["getuserstatus"]["data"]["hashrate"] . " KH/s" : $getHashrate = $apiArr["getuserstatus"]["hashrate"] . " KH/s";
+					(isset($apiArr["getuserstatus"]["data"]["shares"]["valid"])) ? $getShares = $apiArr["getuserstatus"]["data"]["shares"]["valid"] : $getShares = "n/a";
+					
+					$getAPIDiff = getPage(str_replace("&action=getuserstatus", "&action=getdifficulty", $apiType . $apiKey));
+					$diffObj = json_decode($getAPIDiff);
+					($apiType == LTC_HASHFASTER) ? $getDiff = $diffObj->getdifficulty->data : $getDiff = $diffObj->getdifficulty;
+				}
+				elseif (trim($getAPI) == "Access denied") {
+					$getBalance = "Invalid API key.";
+				}
+				else {
+					$getBalance = "Error loading the API.";
+				}
+			}
+			
+?>
+		  <td><?php echo $getName; ?></td>
+		  <td><?php echo $getBalance; ?></td>
+		  <td><?php echo $getHashrate; ?></td>
+		  <td><?php echo $getShares; ?></td>
+		  <td><?php echo $getDiff; ?></td>
+		</tr>
+<?php
+		}		
+	}
+?>
+	</tbody>
+  </table>
+</section>
 <?php if ($viewPrices == true) { ?>
 <section id="tables" style="margin-top: 5px; padding-top: 5px;">
   <div class="page-header">
